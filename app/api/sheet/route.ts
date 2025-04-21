@@ -2,6 +2,7 @@ import {NextRequest, NextResponse} from "next/server";
 import {google} from "googleapis";
 
 type SheetForm = {
+  uuid: string,
   name: string,
   phone: string,
   notes: string,
@@ -9,10 +10,14 @@ type SheetForm = {
   size: string,
   sugar: string,
   ice: string,
+  bukti_pembayaran: string,
+  invoice: string,
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json() as SheetForm;
+
+  console.log(body)
 
   try {
     // auth
@@ -26,12 +31,16 @@ export async function POST(req: NextRequest) {
 
     const sheets = google.sheets({version: "v4", auth});
 
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+    const invoiceUrl = `${baseUrl}/invoice/${body.uuid}`
+
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: "A1:I1",
+      range: "A1:L1",
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values: [[
+          body.uuid,
           new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }),
           body.name,
           body.phone,
@@ -40,6 +49,8 @@ export async function POST(req: NextRequest) {
           body.size,
           body.sugar,
           body.ice,
+          invoiceUrl,
+          body.bukti_pembayaran,
           "Pending"
         ]],
       },  

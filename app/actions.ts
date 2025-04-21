@@ -3,15 +3,19 @@
 import { GoogleSpreadsheet } from "google-spreadsheet"
 import { JWT } from "google-auth-library"
 
-type OrderData = {
+interface OrderData {
+  uuid: string
+  date: string
   name: string
   phone: string
-  coffeeType: string
+  notes: string
+  location: string
   size: string
   sugar: string
   ice: string
-  notes?: string
-  location: string
+  invoice: string
+  bukti_pembayaran: string
+  status: string
 }
 
 export async function submitOrder(data: OrderData) {
@@ -62,6 +66,7 @@ async function sendTelegramNotification(data: OrderData) {
   try {
     const botToken = process.env.TELEGRAM_BOT_TOKEN
     const chatId = process.env.TELEGRAM_CHAT_ID
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
 
     if (!botToken || !chatId) {
       throw new Error("Telegram configuration missing")
@@ -73,11 +78,12 @@ async function sendTelegramNotification(data: OrderData) {
 
 👤 *Customer*: ${data.name}
 ☎️ *Phone*: ${data.phone}
-☕ *Order*: ${data.coffeeType} (${data.size})
+📦 *Size*: ${data.size}
 🧊 *Ice*: ${data.ice}
 🍬 *Sugar*: ${data.sugar}
 📍 *Location*: ${data.location}
 ${data.notes ? `📝 *Notes*: ${data.notes}` : ""}
+📄 *Invoice*: ${baseUrl}/invoice/${data.invoice}
 
 ⏰ *Time*: ${new Date().toLocaleString()}
     `.trim()
