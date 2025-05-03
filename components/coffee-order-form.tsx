@@ -18,13 +18,9 @@ import { PaymentModal } from "./payment-modal"
 import { createClient } from '@supabase/supabase-js'
 
 const coffeeOptions = [
-  { value: "americano", label: "Americano", price: 25000, image: "https://t4.ftcdn.net/jpg/01/16/61/93/360_F_116619399_YA611bKNOW35ffK0OiyuaOcjAgXgKBui.jpg" },
-  { value: "latte", label: "Latte", price: 30000, image: "https://t4.ftcdn.net/jpg/01/16/61/93/360_F_116619399_YA611bKNOW35ffK0OiyuaOcjAgXgKBui.jpg" },
-  { value: "cappuccino", label: "Cappuccino", price: 32000, image: "https://t4.ftcdn.net/jpg/01/16/61/93/360_F_116619399_YA611bKNOW35ffK0OiyuaOcjAgXgKBui.jpg" },
-  { value: "mocha", label: "Mocha", price: 35000, image: "https://t4.ftcdn.net/jpg/01/16/61/93/360_F_116619399_YA611bKNOW35ffK0OiyuaOcjAgXgKBui.jpg" },
-  { value: "espresso", label: "Espresso", price: 20000, image: "https://t4.ftcdn.net/jpg/01/16/61/93/360_F_116619399_YA611bKNOW35ffK0OiyuaOcjAgXgKBui.jpg" },
-  { value: "flat-white", label: "Flat White", price: 33000, image: "https://t4.ftcdn.net/jpg/01/16/61/93/360_F_116619399_YA611bKNOW35ffK0OiyuaOcjAgXgKBui.jpg" },
-  { value: "caramel-macchiato", label: "Caramel Macchiato", price: 38000, image: "https://t4.ftcdn.net/jpg/01/16/61/93/360_F_116619399_YA611bKNOW35ffK0OiyuaOcjAgXgKBui.jpg" },
+  { value: "phista coffee", label: "Phista Coffee", price: 18000, image: "/phista_coffee.png" },
+  { value: "Phicoffee Caramel Macchiato", label: "Phicoffee Caramel Macchiato", price: 20000, image: "/caramel.png" },
+  { value: "Phicoffee Brown Sugar", label: "Phicoffee Brown Sugar", price: 20000, image: "/brown_sugar.png" },
 ]
 
 const formSchema = z.object({
@@ -231,7 +227,7 @@ export default function CoffeeOrderForm() {
             )}
           />
 
-          <FormField
+          {/* <FormField
             control={form.control}
             name="size"
             render={({ field }) => (
@@ -262,7 +258,7 @@ export default function CoffeeOrderForm() {
                 <FormMessage />
               </FormItem>
             )}
-          />
+          /> */}
 
           <div className="grid grid-cols-2 gap-4">
             <FormField
@@ -278,10 +274,10 @@ export default function CoffeeOrderForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="none">No Sugar</SelectItem>
-                      <SelectItem value="less">Less Sugar</SelectItem>
+                      {/* <SelectItem value="none">No Sugar</SelectItem>
+                      <SelectItem value="less">Less Sugar</SelectItem> */}
                       <SelectItem value="normal">Normal Sugar</SelectItem>
-                      <SelectItem value="extra">Extra Sugar</SelectItem>
+                      {/* <SelectItem value="extra">Extra Sugar</SelectItem> */}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -302,10 +298,10 @@ export default function CoffeeOrderForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="hot">Hot</SelectItem>
-                      <SelectItem value="less">Less Ice</SelectItem>
+                      {/* <SelectItem value="hot">Hot</SelectItem>
+                      <SelectItem value="less">Less Ice</SelectItem> */}
                       <SelectItem value="normal">Normal Ice</SelectItem>
-                      <SelectItem value="extra">Extra Ice</SelectItem>
+                      <SelectItem value="extra">No Ice</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
