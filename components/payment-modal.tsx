@@ -295,7 +295,7 @@ export function PaymentModal({ isOpen, onClose, totalAmount, orderId, orderData 
       }
       onClose()
     }}>
-      <DialogContent className="sm:max-w-[400px] p-4">
+      <DialogContent className="sm:max-w-[400px] p-4 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Payment Details</DialogTitle>
         </DialogHeader>
