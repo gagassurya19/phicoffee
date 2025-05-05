@@ -2,6 +2,7 @@
 
 import { GoogleSpreadsheet } from "google-spreadsheet"
 import { JWT } from "google-auth-library"
+import { formatPrice } from '@/lib/utils'
 
 interface OrderData {
   uuid: string
@@ -10,12 +11,12 @@ interface OrderData {
   phone: string
   notes: string
   location: string
-  size: string
-  sugar: string
-  ice: string
   invoice: string
   bukti_pembayaran: string
   status: string
+  location_coordinates?: string
+  coffeeSelections: string
+  totalPrice: number
 }
 
 export async function submitOrder(data: OrderData) {
@@ -24,7 +25,7 @@ export async function submitOrder(data: OrderData) {
     await saveToSpreadsheet(data)
 
     // 2. Send Telegram notification
-    // await sendTelegramNotification(data)
+    await sendTelegramNotification(data)
 
     return { success: true }
   } catch (error) {
@@ -73,18 +74,41 @@ async function sendTelegramNotification(data: OrderData) {
     }
 
     // Format the message
+    const formatCoffeeSelections = (selections: any) => {
+      try {
+        const parsed = typeof selections === 'string' ? JSON.parse(selections) : selections
+        if (!Array.isArray(parsed)) return String(selections)
+        
+        return parsed
+          .filter(selection => selection.quantity > 0)
+          .map(selection => {
+            const withIce = selection.ice.withIce > 0 ? `with ice: ${selection.ice.withIce}x` : '';
+            const withoutIce = selection.ice.withoutIce > 0 ? `no ice: ${selection.ice.withoutIce}x` : '';
+            const iceDetails = [withIce, withoutIce].filter(Boolean).join(' | ');
+            return `• ${selection.type}\n  ${iceDetails}`;
+          })
+          .join('\n\n');
+      } catch (error) {
+        console.error('Error parsing coffee selections:', error)
+        return String(selections)
+      }
+    }
+
     const message = `
 🆕 *NEW COFFEE ORDER* 🆕
 
 👤 *Customer*: ${data.name}
-☎️ *Phone*: ${data.phone}
-📦 *Size*: ${data.size}
-🧊 *Ice*: ${data.ice}
-🍬 *Sugar*: ${data.sugar}
+☎️ *Phone*: 0${data.phone}
 📍 *Location*: ${data.location}
-${data.notes ? `📝 *Notes*: ${data.notes}` : ""}
-📄 *Invoice*: ${baseUrl}/invoice/${data.invoice}
+${data.location_coordinates ? `🗺 *Map*: ${data.location_coordinates}` : ""}
 
+☕ *Orders*:
+${formatCoffeeSelections(data.coffeeSelections)}
+
+💰 *Total Price*: Rp ${formatPrice(data.totalPrice)}
+${data.notes ? `📝 *Notes*: ${data.notes}` : ""}
+
+📄 *Invoice*: ${baseUrl}/invoice/${data.uuid}
 ⏰ *Time*: ${new Date().toLocaleString()}
     `.trim()
 

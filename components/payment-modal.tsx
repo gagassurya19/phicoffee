@@ -28,12 +28,11 @@ interface PaymentModalProps {
     notes: string
     location: string
     location_coordinates: string
-    size: string
-    sugar: string
-    ice: string
     invoice: string
     bukti_pembayaran: string
     status: string
+    coffeeSelections: string
+    totalPrice: number
   }
 }
 
