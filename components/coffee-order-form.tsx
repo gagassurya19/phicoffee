@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { PaymentModal } from "./payment-modal"
 import dynamic from 'next/dynamic'
+import { formatPrice } from '@/lib/utils'
 import 'leaflet/dist/leaflet.css'
 
 const MapWithNoSSR = dynamic(() => import('@/components/map').then(mod => mod.default), {
@@ -337,7 +338,7 @@ export default function CoffeeOrderForm() {
                     />
                     <div>
                       <h3 className="font-medium">{coffee.label}</h3>
-                      <p className="text-sm text-gray-500">Rp {coffee.price.toLocaleString()}</p>
+                      <p className="text-sm text-gray-500">Rp {formatPrice(coffee.price)}</p>
                     </div>
                   </div>
                   
@@ -425,7 +426,7 @@ export default function CoffeeOrderForm() {
               >
                 <MapPin className="h-4 w-4" />
                 {/* {gpsPermission === 'granted' ? 'Use Current Location' : 'Please Enable GPS'} */}
-                'Use Current Location'
+                Use Current Location
               </Button>
             </div>
             <div className="h-[300px] rounded-lg overflow-hidden border">
@@ -475,7 +476,7 @@ export default function CoffeeOrderForm() {
                     <div key={index} className="space-y-2 mb-4">
                       <div className="flex justify-between items-center">
                         <span className="font-medium">{coffee.label}</span>
-                        <span>Rp {(coffee.price * selection.quantity).toLocaleString()}</span>
+                        <span>Rp {formatPrice(coffee.price * selection.quantity)}</span>
                       </div>
                       <div className="text-sm text-gray-600 pl-4">
                         {selection.ice.withIce > 0 && (
@@ -490,7 +491,7 @@ export default function CoffeeOrderForm() {
                 })}
               <div className="flex justify-between items-center mt-4 pt-4 border-t">
                 <span className="font-semibold">Total Price:</span>
-                <span className="font-bold">Rp {calculateTotalPrice().toLocaleString()}</span>
+                <span className="font-bold">Rp {formatPrice(calculateTotalPrice())}</span>
               </div>
             </div>
           )}

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { google } from 'googleapis'
+import { formatPrice } from '@/lib/utils'
 
 interface OrderData {
   id: string
@@ -98,7 +99,7 @@ export default async function InvoicePage({
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Customer Information</h2>
               <div className="space-y-2">
                 <p><span className="font-medium">Name:</span> {order.name}</p>
-                <p><span className="font-medium">Phone:</span> {order.phone}</p>
+                <p><span className="font-medium">Phone:</span> 0{order.phone}</p>
                 <p><span className="font-medium">Location:</span> {order.location}</p>
                 <p><span className="font-medium">Date:</span> {order.date}</p>
               </div>
@@ -107,7 +108,7 @@ export default async function InvoicePage({
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Details</h2>
               <div className="space-y-2">
                 <p><span className="font-medium">Coffee Orders:</span> {order.coffeeSelections}</p>
-                <p><span className="font-medium">Total Price:</span> {order.totalPrice}</p>
+                <p><span className="font-medium">Total Price:</span> Rp {formatPrice(order.totalPrice)}</p>
                 {order.notes && (
                   <p><span className="font-medium">Notes:</span> {order.notes}</p>
                 )}
