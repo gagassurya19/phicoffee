@@ -8,7 +8,7 @@ import Image from "next/image"
 import { useToast } from "@/hooks/use-toast"
 import { submitOrder } from "@/app/actions"
 import { useRouter } from "next/navigation"
-import { Camera, Upload, RotateCcw, CameraOff, Camera as CameraIcon, AlertTriangle } from "lucide-react"
+import { Camera, Upload, RotateCcw, CameraOff, Camera as CameraIcon, AlertTriangle, CheckCircle2 } from "lucide-react"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,6 +27,7 @@ interface PaymentModalProps {
     phone: string
     notes: string
     location: string
+    location_coordinates: string
     size: string
     sugar: string
     ice: string
@@ -41,7 +42,8 @@ export function PaymentModal({ isOpen, onClose, totalAmount, orderId, orderData 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [uploadSuccess, setUploadSuccess] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false)
   const [paymentProofUrl, setPaymentProofUrl] = useState<string | null>(null)
   const [showCamera, setShowCamera] = useState(false)
   const [isCameraReady, setIsCameraReady] = useState(false)
@@ -266,8 +268,7 @@ export function PaymentModal({ isOpen, onClose, totalAmount, orderId, orderData 
         description: "Order submitted successfully!",
       })
 
-      // redirect to invoice page
-      router.push(`/invoice/${orderId}`)
+      setShowSuccessModal(true)
     } catch (error: any) {
       console.error('Error in handleSubmitOrder:', error)
       let errorMessage = "Failed to submit order. Please try again."
@@ -288,159 +289,189 @@ export function PaymentModal({ isOpen, onClose, totalAmount, orderId, orderData 
     }
   }
 
+  const handleViewInvoice = () => {
+    setIsNavigating(true)
+    router.replace(`/invoice/${orderId}`)
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) {
-        stopCamera()
-      }
-      onClose()
-    }}>
-      <DialogContent className="sm:max-w-[400px] p-4 max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Payment Details</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="text-center">
-            <p className="text-lg font-semibold">Total: Rp {totalAmount.toLocaleString()}</p>
-            <p className="text-sm text-gray-500">Menerima pembayaran apapun dengan <span className="font-bold">QRIS</span></p>
-          </div>
-          <div className="flex justify-center">
-            <Image
-              src="/qris/qris.jpeg"
-              alt="QRIS Payment"
-              width={250}
-              height={180}
-              className="rounded-lg"
-            />
-          </div>
-
-          <div className={`relative w-full max-w-xs mx-auto aspect-[4/3] rounded-lg overflow-hidden bg-black border border-gray-200 ${!showCamera ? 'hidden' : ''}`}>
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full object-contain bg-black"
-              style={{ background: '#000' }}
-              onLoadedMetadata={() => {
-                console.log('Video metadata loaded')
-                setIsCameraReady(true)
-                if (cameraTimeout) clearTimeout(cameraTimeout)
-              }}
-            />
-            {!isCameraReady && showCamera && !cameraError && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
-                <CameraOff className="h-8 w-8 text-white animate-pulse mb-2" />
-                <span className="text-white text-xs">Menginisialisasi kamera...</span>
-              </div>
-            )}
-            {cameraError && showCamera && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
-                <AlertTriangle className="h-8 w-8 text-yellow-400 mb-2" />
-                <span className="text-white text-xs text-center">{cameraError}</span>
-              </div>
-            )}
-          </div>
-
-          {showCamera ? (
-            <div className="space-y-3">
-              <div className="flex gap-2 justify-center">
-                <Button
-                  onClick={capturePhoto}
-                  className="flex-1 px-2"
-                  size="sm"
-                  disabled={!isCameraReady || !!cameraError}
-                >
-                  <CameraIcon className="h-4 w-4 mr-1" />
-                  Ambil Foto
-                </Button>
-                <Button
-                  onClick={switchCamera}
-                  variant="outline"
-                  className="flex-1 px-2"
-                  size="sm"
-                  disabled={!isCameraReady || !!cameraError}
-                >
-                  <RotateCcw className="h-4 w-4 mr-1" />
-                  Ganti Kamera
-                </Button>
-                <Button
-                  onClick={stopCamera}
-                  variant="outline"
-                  className="flex-1 px-2"
-                  size="sm"
-                >
-                  Batal
-                </Button>
-              </div>
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        if (!open) {
+          stopCamera()
+        }
+        onClose()
+      }}>
+        <DialogContent className="sm:max-w-[400px] p-4 max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Payment Details</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center">
+              <p className="text-lg font-semibold">Total: Rp {totalAmount.toLocaleString()}</p>
+              <p className="text-sm text-gray-500">Menerima pembayaran apapun dengan <span className="font-bold">QRIS</span></p>
             </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  onClick={startCamera}
-                  variant="outline"
-                  className="flex items-center gap-2 justify-center"
-                  size="sm"
-                >
-                  <Camera className="h-4 w-4" />
-                  Ambil Foto
-                </Button>
-                <div className="relative">
-                  <Input
-                    id="payment-proof"
-                    type="file"
-                    accept="image/jpeg,image/png,image/jpg,image/heic,image/heif"
-                    onChange={handleFileChange}
-                    disabled={isSubmitting}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
+            <div className="flex justify-center">
+              <Image
+                src="/qris/qris.jpeg"
+                alt="QRIS Payment"
+                width={250}
+                height={180}
+                className="rounded-lg"
+              />
+            </div>
+
+            <div className={`relative w-full max-w-xs mx-auto aspect-[4/3] rounded-lg overflow-hidden bg-black border border-gray-200 ${!showCamera ? 'hidden' : ''}`}>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                className="w-full h-full object-contain bg-black"
+                style={{ background: '#000' }}
+                onLoadedMetadata={() => {
+                  console.log('Video metadata loaded')
+                  setIsCameraReady(true)
+                  if (cameraTimeout) clearTimeout(cameraTimeout)
+                }}
+              />
+              {!isCameraReady && showCamera && !cameraError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
+                  <CameraOff className="h-8 w-8 text-white animate-pulse mb-2" />
+                  <span className="text-white text-xs">Menginisialisasi kamera...</span>
+                </div>
+              )}
+              {cameraError && showCamera && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
+                  <AlertTriangle className="h-8 w-8 text-yellow-400 mb-2" />
+                  <span className="text-white text-xs text-center">{cameraError}</span>
+                </div>
+              )}
+            </div>
+
+            {showCamera ? (
+              <div className="space-y-3">
+                <div className="flex gap-2 justify-center">
                   <Button
-                    variant="outline"
-                    className="w-full flex items-center gap-2 justify-center"
+                    onClick={capturePhoto}
+                    className="flex-1 px-2"
                     size="sm"
-                    disabled={isSubmitting}
+                    disabled={!isCameraReady || !!cameraError}
                   >
-                    <Upload className="h-4 w-4" />
-                    Upload File
+                    <CameraIcon className="h-4 w-4 mr-1" />
+                    Ambil Foto
+                  </Button>
+                  <Button
+                    onClick={switchCamera}
+                    variant="outline"
+                    className="flex-1 px-2"
+                    size="sm"
+                    disabled={!isCameraReady || !!cameraError}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-1" />
+                    Ganti Kamera
+                  </Button>
+                  <Button
+                    onClick={stopCamera}
+                    variant="outline"
+                    className="flex-1 px-2"
+                    size="sm"
+                  >
+                    Batal
                   </Button>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 text-center">Ukuran maks: 1MB. Format: JPEG, PNG, HEIC (iPhone)</p>
-            </div>
-          )}
-
-          {previewUrl && (
-            <div className="mt-2">
-              <Label>Bukti Pembayaran Preview</Label>
-              <div className="relative w-full h-40 mt-2 rounded-lg overflow-hidden border mx-auto">
-                <Image
-                  src={previewUrl}
-                  alt="Payment Proof Preview"
-                  fill
-                  className="object-contain"
-                  sizes="(max-width: 400px) 100vw, 400px"
-                  priority
-                />
+            ) : (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    onClick={startCamera}
+                    variant="outline"
+                    className="flex items-center gap-2 justify-center"
+                    size="sm"
+                  >
+                    <Camera className="h-4 w-4" />
+                    Ambil Foto
+                  </Button>
+                  <div className="relative">
+                    <Input
+                      id="payment-proof"
+                      type="file"
+                      accept="image/jpeg,image/png,image/jpg,image/heic,image/heif"
+                      onChange={handleFileChange}
+                      disabled={isSubmitting}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-full flex items-center gap-2 justify-center"
+                      size="sm"
+                      disabled={isSubmitting}
+                    >
+                      <Upload className="h-4 w-4" />
+                      Upload File
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 text-center">Ukuran maks: 1MB. Format: JPEG, PNG, HEIC (iPhone)</p>
               </div>
-            </div>
-          )}
+            )}
 
-          <Button
-            onClick={handleSubmitOrder}
-            disabled={isSubmitting || !paymentProof}
-            className="w-full mt-2"
-            size="sm"
-          >
-            {isSubmitting ? "Submitting..." : "Submit Order"}
-          </Button>
+            {previewUrl && (
+              <div className="mt-2">
+                <Label>Bukti Pembayaran Preview</Label>
+                <div className="relative w-full h-40 mt-2 rounded-lg overflow-hidden border mx-auto">
+                  <Image
+                    src={previewUrl}
+                    alt="Payment Proof Preview"
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 400px) 100vw, 400px"
+                    priority
+                  />
+                </div>
+              </div>
+            )}
 
-          {isSubmitting && (
-            <div className="text-center text-gray-600 text-xs">
-              Mohon tunggu, pesanan Anda sedang diproses...
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+            <Button
+              onClick={handleSubmitOrder}
+              disabled={isSubmitting || !paymentProof}
+              className="w-full mt-2"
+              size="sm"
+            >
+              {isSubmitting ? "Submitting..." : "Submit Order"}
+            </Button>
+
+            {isSubmitting && (
+              <div className="text-center text-gray-600 text-xs">
+                Mohon tunggu, pesanan Anda sedang diproses...
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSuccessModal} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-[400px] p-4">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-600">
+              <CheckCircle2 className="h-5 w-5" />
+              Pesanan Berhasil Dibuat
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-center text-gray-600">
+              Pesanan Anda telah berhasil dibuat dan menunggu verifikasi.
+            </p>
+            <Button
+              onClick={handleViewInvoice}
+              className="w-full"
+              disabled={isNavigating}
+            >
+              {isNavigating ? "Redirecting..." : "Lihat Invoice"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 } 

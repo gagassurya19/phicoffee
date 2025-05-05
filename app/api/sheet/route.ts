@@ -19,6 +19,7 @@ type SheetForm = {
   coffeeSelections: CoffeeSelection[];
   totalPrice: number;
   location: string;
+  location_coordinates: string;
   bukti_pembayaran: string;
   status: string;
 }
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
           coffeeSelectionsStr,
           body.totalPrice,
           body.location,
+          body.location_coordinates,
           invoiceUrl,
           body.bukti_pembayaran,
           body.status,

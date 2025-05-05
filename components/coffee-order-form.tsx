@@ -58,6 +58,7 @@ const formSchema = z.object({
   location: z.string().min(3, {
     message: "Please provide your location for delivery.",
   }),
+  location_coordinates: z.string().optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -164,6 +165,7 @@ export default function CoffeeOrderForm() {
         phone: values.phone,
         notes: values.notes || "",
         location: values.location,
+        location_coordinates: values.location_coordinates,
         coffeeSelections: values.coffeeSelections.filter(selection => selection.quantity > 0),
         bukti_pembayaran: "",
         status: "pending_payment",
@@ -202,6 +204,9 @@ export default function CoffeeOrderForm() {
   const handleLocationSelect = (location: [number, number]) => {
     setSelectedLocation(location)
     
+    // Format coordinates for Google Maps
+    const googleMapsUrl = `https://www.google.com/maps/place/${location[0]},${location[1]}`
+    
     // Try to get address with retry
     const fetchAddress = async (retries = 3) => {
       try {
@@ -221,7 +226,9 @@ export default function CoffeeOrderForm() {
         if (data?.display_name) {
           // Extract relevant address parts
           const address = data.display_name.split(',').slice(0, 3).join(',').trim()
+          // Set display address in form but store Google Maps URL in form data
           form.setValue("location", address)
+          form.setValue("location_coordinates", googleMapsUrl)
         } else {
           throw new Error('No address found')
         }
@@ -232,6 +239,7 @@ export default function CoffeeOrderForm() {
         } else {
           // Only use coordinates as last resort
           form.setValue("location", "Please enter your delivery address manually")
+          form.setValue("location_coordinates", googleMapsUrl)
         }
       }
     }
@@ -241,15 +249,15 @@ export default function CoffeeOrderForm() {
 
   const handleCurrentLocation = () => {
     if (navigator.geolocation) {
-      if (gpsPermission === 'denied') {
-        // Show instructions to enable GPS in browser settings
-        toast({
-          title: "Location Access Required",
-          description: "Please enable location access in your browser settings to use this feature.",
-          variant: "default",
-        })
-        return
-      }
+      // if (gpsPermission === 'denied') {
+      //   // Show instructions to enable GPS in browser settings
+      //   toast({
+      //     title: "Location Access Required",
+      //     description: "Please enable location access in your browser settings to use this feature.",
+      //     variant: "default",
+      //   })
+      //   return
+      // }
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -416,7 +424,8 @@ export default function CoffeeOrderForm() {
                 className="flex items-center gap-2"
               >
                 <MapPin className="h-4 w-4" />
-                {gpsPermission === 'granted' ? 'Use Current Location' : 'Please Enable GPS'}
+                {/* {gpsPermission === 'granted' ? 'Use Current Location' : 'Please Enable GPS'} */}
+                'Use Current Location'
               </Button>
             </div>
             <div className="h-[300px] rounded-lg overflow-hidden border">
