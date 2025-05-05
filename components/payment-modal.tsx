@@ -302,7 +302,7 @@ export function PaymentModal({ isOpen, onClose, totalAmount, orderId, orderData 
         <div className="space-y-4">
           <div className="text-center">
             <p className="text-lg font-semibold">Total: Rp {totalAmount.toLocaleString()}</p>
-            <p className="text-sm text-gray-500">Hanya menerima pembayaran dengan <span className="font-bold">GOPAY</span></p>
+            <p className="text-sm text-gray-500">Menerima pembayaran apapun dengan <span className="font-bold">QRIS</span></p>
           </div>
           <div className="flex justify-center">
             <Image
