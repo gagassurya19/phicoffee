@@ -29,9 +29,9 @@ interface CoffeeSelection {
 }
 
 const coffeeOptions = [
-  { value: "phista coffee", label: "Phista Coffee", price: 18000, image: "/phista_coffee.png" },
+  { value: "phista coffee", label: "Phista Coffee", price: 20000, image: "/phista_coffee.png" },
   { value: "Phicoffee Caramel Macchiato", label: "Phicoffee Caramel Macchiato", price: 20000, image: "/caramel.png" },
-  { value: "Phicoffee Brown Sugar", label: "Phicoffee Brown Sugar", price: 20000, image: "/brown_sugar.png" },
+  { value: "Phicoffee Brown Sugar", label: "Phicoffee Brown Sugar", price: 18000, image: "/brown_sugar.png" },
 ]
 
 const formSchema = z.object({
