@@ -12,11 +12,11 @@ export default function OrderTabs() {
     <Tabs defaultValue="order-now" className="w-full" onValueChange={setActiveTab}>
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="order-now" className="data-[state=active]:bg-[#667538] data-[state=active]:text-white">
-          Order Now
-        </TabsTrigger>
-        <TabsTrigger value="pre-order" className="data-[state=active]:bg-[#667538] data-[state=active]:text-white">
           Pre-Order
         </TabsTrigger>
+        {/* <TabsTrigger value="pre-order" className="data-[state=active]:bg-[#667538] data-[state=active]:text-white">
+          Pre-Order
+        </TabsTrigger> */}
       </TabsList>
       <TabsContent value="order-now" className="mt-4">
         <CoffeeOrderForm />

@@ -12,7 +12,7 @@ interface OrderData {
   invoice: string
   payment_proof_url: string
   status: string
-  created_at: string
+  totalPrice: number
 }
 
 async function getOrder(id: string): Promise<OrderData | null> {
@@ -54,12 +54,12 @@ async function getOrder(id: string): Promise<OrderData | null> {
       name: order[2],         // name
       phone: order[3],        // phone
       notes: order[4],        // notes
-      location: order[5],     // location
-      coffeeSelections: order[6], // coffee selections
-      invoice: order[7],      // invoice url
-      payment_proof_url: order[8], // bukti_pembayaran
-      status: order[9],       // status
-      created_at: order[10],  // created at timestamp
+      coffeeSelections: order[5], // coffee selections
+      totalPrice: order[6],   // total price
+      location: order[7],     // location
+      invoice: order[8],      // invoice url
+      payment_proof_url: order[9], // bukti_pembayaran
+      status: order[10],       // status
     }
 
     return orderData
@@ -100,18 +100,18 @@ export default async function InvoicePage({
                 <p><span className="font-medium">Name:</span> {order.name}</p>
                 <p><span className="font-medium">Phone:</span> {order.phone}</p>
                 <p><span className="font-medium">Location:</span> {order.location}</p>
-                <p><span className="font-medium">Date:</span> {new Date(order.date).toLocaleDateString()}</p>
+                <p><span className="font-medium">Date:</span> {order.date}</p>
               </div>
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Details</h2>
               <div className="space-y-2">
                 <p><span className="font-medium">Coffee Orders:</span> {order.coffeeSelections}</p>
+                <p><span className="font-medium">Total Price:</span> {order.totalPrice}</p>
                 {order.notes && (
                   <p><span className="font-medium">Notes:</span> {order.notes}</p>
                 )}
                 <p><span className="font-medium">Status:</span> {order.status}</p>
-                <p><span className="font-medium">Created At:</span> {order.created_at}</p>
               </div>
             </div>
           </div>
