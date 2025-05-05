@@ -1,21 +1,32 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { submitOrder } from "@/app/actions"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Loader2 } from "lucide-react"
+import { Loader2, Plus, Minus, MapPin } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { PaymentModal } from "./payment-modal"
-import { createClient } from '@supabase/supabase-js'
+import dynamic from 'next/dynamic'
+import 'leaflet/dist/leaflet.css'
+
+const MapWithNoSSR = dynamic(() => import('@/components/map').then(mod => mod.default), {
+  ssr: false,
+})
+
+interface CoffeeSelection {
+  type: string;
+  quantity: number;
+  ice: {
+    withIce: number;
+    withoutIce: number;
+  };
+}
 
 const coffeeOptions = [
   { value: "phista coffee", label: "Phista Coffee", price: 18000, image: "/phista_coffee.png" },
@@ -30,69 +41,122 @@ const formSchema = z.object({
   phone: z.string().min(10, {
     message: "Please enter a valid phone number.",
   }),
-  coffeeType: z.string({
-    required_error: "Please select a coffee type.",
-  }),
-  quantity: z.number().min(1, {
-    message: "Quantity must be at least 1.",
-  }),
-  size: z.enum(["small", "medium", "large"], {
-    required_error: "Please select a size.",
-  }),
-  sugar: z.enum(["none", "less", "normal", "extra"], {
-    required_error: "Please select sugar preference.",
-  }),
-  ice: z.enum(["hot", "less", "normal", "extra"], {
-    required_error: "Please select ice preference.",
-  }),
+  coffeeSelections: z.array(z.object({
+    type: z.string({
+      required_error: "Please select a coffee type.",
+    }),
+    quantity: z.number().min(0),
+    ice: z.object({
+      withIce: z.number().min(0),
+      withoutIce: z.number().min(0),
+    }),
+  })).refine(
+    (arr) => arr.some(item => item.quantity > 0),
+    { message: "Please select at least one coffee (qty > 0)." }
+  ),
   notes: z.string().optional(),
   location: z.string().min(3, {
     message: "Please provide your location for delivery.",
   }),
 })
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+type FormData = z.infer<typeof formSchema>
 
 export default function CoffeeOrderForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [selectedCoffee, setSelectedCoffee] = useState<string>("")
-  const [quantity, setQuantity] = useState(1)
+  const [coffeeSelections, setCoffeeSelections] = useState<CoffeeSelection[]>(
+    coffeeOptions.map(coffee => ({ 
+      type: coffee.value, 
+      quantity: 0,
+      ice: {
+        withIce: 0,
+        withoutIce: 0
+      }
+    }))
+  )
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [orderData, setOrderData] = useState<any>(null)
   const [orderId, setOrderId] = useState<string>("")
+  const [selectedLocation, setSelectedLocation] = useState<[number, number] | null>(null)
+  const [currentPosition, setCurrentPosition] = useState<[number, number] | null>(null)
   const { toast } = useToast()
+  const [gpsPermission, setGpsPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt')
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       phone: "",
       notes: "",
       location: "",
-      quantity: 1,
-      size: "medium",
-      sugar: "normal",
-      ice: "normal",
+      coffeeSelections: coffeeOptions.map(coffee => ({ 
+        type: coffee.value, 
+        quantity: 0,
+        ice: {
+          withIce: 0,
+          withoutIce: 0
+        }
+      })),
     },
   })
 
-  const selectedCoffeeDetails = coffeeOptions.find(coffee => coffee.value === selectedCoffee)
-  const totalPrice = selectedCoffeeDetails ? selectedCoffeeDetails.price * quantity : 0
+  useEffect(() => {
+    // Check if geolocation is supported
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        setGpsPermission(result.state)
+        result.onchange = () => {
+          setGpsPermission(result.state)
+        }
+      })
+    }
+  }, [])
+
+  const updateCoffeeQuantity = (index: number, change: number, iceType: 'withIce' | 'withoutIce') => {
+    const newSelections = [...coffeeSelections]
+    const newQuantity = Math.max(0, newSelections[index].ice[iceType] + change)
+    newSelections[index] = { 
+      ...newSelections[index], 
+      ice: {
+        ...newSelections[index].ice,
+        [iceType]: newQuantity
+      },
+      quantity: newSelections[index].ice.withIce + newSelections[index].ice.withoutIce + change
+    }
+    setCoffeeSelections(newSelections)
+    form.setValue("coffeeSelections", newSelections)
+  }
+
+  const calculateTotalPrice = () => {
+    return coffeeSelections.reduce((total, selection) => {
+      const coffee = coffeeOptions.find(opt => opt.value === selection.type)
+      return total + (coffee ? coffee.price * selection.quantity : 0)
+    }, 0)
+  }
+
+  const hasSelectedCoffees = () => {
+    return coffeeSelections.some(selection => selection.quantity > 0)
+  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!hasSelectedCoffees()) {
+      toast({
+        title: "Error",
+        description: "Please select at least one coffee.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsSubmitting(true)
     try {
-      const selectedCoffeeDetails = coffeeOptions.find(coffee => coffee.value === values.coffeeType)
-      const totalPrice = selectedCoffeeDetails ? selectedCoffeeDetails.price * values.quantity : 0
+      const totalPrice = calculateTotalPrice()
 
       // Generate a unique order ID
       const newOrderId = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       setOrderId(newOrderId)
 
-      // Prepare order data according to sheet structure
+      // Prepare order data
       const orderData = {
         uuid: newOrderId,
         date: new Date().toISOString(),
@@ -100,11 +164,10 @@ export default function CoffeeOrderForm() {
         phone: values.phone,
         notes: values.notes || "",
         location: values.location,
-        size: values.size,
-        sugar: values.sugar,
-        ice: values.ice,
-        bukti_pembayaran: "", // Will be updated after payment
-        status: "pending_payment"
+        coffeeSelections: values.coffeeSelections.filter(selection => selection.quantity > 0),
+        bukti_pembayaran: "",
+        status: "pending_payment",
+        totalPrice: totalPrice
       }
 
       setOrderData(orderData)
@@ -123,9 +186,99 @@ export default function CoffeeOrderForm() {
 
   const handleModalClose = () => {
     setShowPaymentModal(false)
-    // Reset form only if order was successfully submitted
     if (orderData?.status === 'pending_verification') {
       form.reset()
+      setCoffeeSelections(coffeeOptions.map(coffee => ({ 
+        type: coffee.value, 
+        quantity: 0,
+        ice: {
+          withIce: 0,
+          withoutIce: 0
+        }
+      })))
+    }
+  }
+
+  const handleLocationSelect = (location: [number, number]) => {
+    setSelectedLocation(location)
+    
+    // Try to get address with retry
+    const fetchAddress = async (retries = 3) => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location[0]}&lon=${location[1]}&zoom=18&addressdetails=1`,
+          {
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'PhiCoffeeOrder/1.0'
+            }
+          }
+        )
+        
+        if (!response.ok) throw new Error('Failed to fetch address')
+        
+        const data = await response.json()
+        if (data?.display_name) {
+          // Extract relevant address parts
+          const address = data.display_name.split(',').slice(0, 3).join(',').trim()
+          form.setValue("location", address)
+        } else {
+          throw new Error('No address found')
+        }
+      } catch (error) {
+        console.error('Error getting address:', error)
+        if (retries > 0) {
+          setTimeout(() => fetchAddress(retries - 1), 1000)
+        } else {
+          // Only use coordinates as last resort
+          form.setValue("location", "Please enter your delivery address manually")
+        }
+      }
+    }
+
+    fetchAddress()
+  }
+
+  const handleCurrentLocation = () => {
+    if (navigator.geolocation) {
+      if (gpsPermission === 'denied') {
+        // Show instructions to enable GPS in browser settings
+        toast({
+          title: "Location Access Required",
+          description: "Please enable location access in your browser settings to use this feature.",
+          variant: "default",
+        })
+        return
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location: [number, number] = [position.coords.latitude, position.coords.longitude]
+          setCurrentPosition(location)
+          handleLocationSelect(location)
+        },
+        (error) => {
+          if (error.code === error.PERMISSION_DENIED) {
+            setGpsPermission('denied')
+            toast({
+              title: "Location Access Denied",
+              description: "Please enable location access in your browser settings to use this feature.",
+              variant: "destructive",
+            })
+          } else {
+            toast({
+              title: "Error",
+              description: "Could not get your location. Please select manually on the map.",
+              variant: "destructive",
+            })
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        }
+      )
     }
   }
 
@@ -161,169 +314,132 @@ export default function CoffeeOrderForm() {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="coffeeType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Coffee Type</FormLabel>
-                <Select 
-                  onValueChange={(value) => {
-                    field.onChange(value)
-                    setSelectedCoffee(value)
-                  }} 
-                  defaultValue={field.value}
-                >
+          <div className="space-y-4">
+            <FormLabel>Coffee Selections</FormLabel>
+            <div className="grid gap-4">
+              {coffeeOptions.map((coffee, index) => (
+                <div key={coffee.value} className="flex flex-col gap-4 p-4 border rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <Image
+                      src={coffee.image}
+                      alt={coffee.label}
+                      width={60}
+                      height={60}
+                      className="rounded-full"
+                    />
+                    <div>
+                      <h3 className="font-medium">{coffee.label}</h3>
+                      <p className="text-sm text-gray-500">Rp {coffee.price.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">With Ice</p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => updateCoffeeQuantity(index, -1, 'withIce')}
+                          disabled={coffeeSelections[index].ice.withIce === 0}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={coffeeSelections[index].ice.withIce}
+                          onChange={(e) => {
+                            const value = Math.max(0, parseInt(e.target.value) || 0)
+                            updateCoffeeQuantity(index, value - coffeeSelections[index].ice.withIce, 'withIce')
+                          }}
+                          className="w-16 text-center"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => updateCoffeeQuantity(index, 1, 'withIce')}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Without Ice</p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => updateCoffeeQuantity(index, -1, 'withoutIce')}
+                          disabled={coffeeSelections[index].ice.withoutIce === 0}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={coffeeSelections[index].ice.withoutIce}
+                          onChange={(e) => {
+                            const value = Math.max(0, parseInt(e.target.value) || 0)
+                            updateCoffeeQuantity(index, value - coffeeSelections[index].ice.withoutIce, 'withoutIce')
+                          }}
+                          className="w-16 text-center"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => updateCoffeeQuantity(index, 1, 'withoutIce')}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <FormLabel>Delivery Location</FormLabel>
+              <Button
+                type="button"
+                variant={gpsPermission === 'granted' ? "outline" : "default"}
+                size="sm"
+                onClick={handleCurrentLocation}
+                className="flex items-center gap-2"
+              >
+                <MapPin className="h-4 w-4" />
+                {gpsPermission === 'granted' ? 'Use Current Location' : 'Please Enable GPS'}
+              </Button>
+            </div>
+            <div className="h-[300px] rounded-lg overflow-hidden border">
+              <MapWithNoSSR
+                onLocationSelect={handleLocationSelect}
+                selectedLocation={selectedLocation}
+                initialPosition={currentPosition || undefined}
+              />
+            </div>
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
                   <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select your coffee" />
-                    </SelectTrigger>
+                    <Input placeholder="Where should we deliver your coffee?" {...field} />
                   </FormControl>
-                  <SelectContent>
-                    {coffeeOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        <div className="flex items-center gap-2">
-                          <Image 
-                            src={option.image} 
-                            alt={option.label} 
-                            width={40} 
-                            height={40} 
-                            className="rounded-full"
-                          />
-                          <div>
-                            <span>{option.label}</span>
-                            <span className="text-sm text-gray-500 ml-2">Rp {option.price.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="quantity"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Quantity</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    min="1" 
-                    {...field} 
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value)
-                      field.onChange(value)
-                      setQuantity(value)
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* <FormField
-            control={form.control}
-            name="size"
-            render={({ field }) => (
-              <FormItem className="space-y-3">
-                <FormLabel>Size</FormLabel>
-                <FormControl>
-                  <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex space-x-2">
-                    <FormItem className="flex items-center space-x-1 space-y-0">
-                      <FormControl>
-                        <RadioGroupItem value="small" />
-                      </FormControl>
-                      <FormLabel className="font-normal cursor-pointer">Small</FormLabel>
-                    </FormItem>
-                    <FormItem className="flex items-center space-x-1 space-y-0">
-                      <FormControl>
-                        <RadioGroupItem value="medium" />
-                      </FormControl>
-                      <FormLabel className="font-normal cursor-pointer">Medium</FormLabel>
-                    </FormItem>
-                    <FormItem className="flex items-center space-x-1 space-y-0">
-                      <FormControl>
-                        <RadioGroupItem value="large" />
-                      </FormControl>
-                      <FormLabel className="font-normal cursor-pointer">Large</FormLabel>
-                    </FormItem>
-                  </RadioGroup>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          /> */}
-
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="sugar"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Sugar</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sugar level" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {/* <SelectItem value="none">No Sugar</SelectItem>
-                      <SelectItem value="less">Less Sugar</SelectItem> */}
-                      <SelectItem value="normal">Normal Sugar</SelectItem>
-                      {/* <SelectItem value="extra">Extra Sugar</SelectItem> */}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="ice"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ice / Temperature</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Ice level" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {/* <SelectItem value="hot">Hot</SelectItem>
-                      <SelectItem value="less">Less Ice</SelectItem> */}
-                      <SelectItem value="normal">Normal Ice</SelectItem>
-                      <SelectItem value="extra">No Ice</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormDescription>Building name, room number, or specific location</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
-
-          <FormField
-            control={form.control}
-            name="location"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Delivery Location</FormLabel>
-                <FormControl>
-                  <Input placeholder="Where should we deliver your coffee?" {...field} />
-                </FormControl>
-                <FormDescription>Building name, room number, or specific location</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
           <FormField
             control={form.control}
@@ -339,17 +455,38 @@ export default function CoffeeOrderForm() {
             )}
           />
 
-          {selectedCoffee && (
+          {hasSelectedCoffees() && (
             <div className="p-4 bg-gray-50 rounded-lg">
               <h3 className="font-semibold mb-2">Order Summary</h3>
-              <div className="flex justify-between items-center">
-                <span>Total Price:</span>
-                <span className="font-bold">Rp {totalPrice.toLocaleString()}</span>
+              {coffeeSelections
+                .filter(selection => selection.quantity > 0)
+                .map((selection, index) => {
+                  const coffee = coffeeOptions.find(opt => opt.value === selection.type)
+                  return coffee ? (
+                    <div key={index} className="space-y-2 mb-4">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">{coffee.label}</span>
+                        <span>Rp {(coffee.price * selection.quantity).toLocaleString()}</span>
+                      </div>
+                      <div className="text-sm text-gray-600 pl-4">
+                        {selection.ice.withIce > 0 && (
+                          <div>With Ice: {selection.ice.withIce}</div>
+                        )}
+                        {selection.ice.withoutIce > 0 && (
+                          <div>Without Ice: {selection.ice.withoutIce}</div>
+                        )}
+                      </div>
+                    </div>
+                  ) : null
+                })}
+              <div className="flex justify-between items-center mt-4 pt-4 border-t">
+                <span className="font-semibold">Total Price:</span>
+                <span className="font-bold">Rp {calculateTotalPrice().toLocaleString()}</span>
               </div>
             </div>
           )}
 
-          <Button type="submit" className="w-full bg-[#a8d39e] hover:bg-[#97c28d]" disabled={isSubmitting}>
+          <Button type="submit" className="w-full bg-[#667538] hover:bg-[#97c28d]" disabled={isSubmitting || !hasSelectedCoffees()}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -366,7 +503,7 @@ export default function CoffeeOrderForm() {
         <PaymentModal
           isOpen={showPaymentModal}
           onClose={handleModalClose}
-          totalAmount={totalPrice}
+          totalAmount={calculateTotalPrice()}
           orderId={orderId}
           orderData={orderData}
         />

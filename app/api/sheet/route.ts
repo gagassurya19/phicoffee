@@ -1,17 +1,26 @@
 import {NextRequest, NextResponse} from "next/server";
 import {google} from "googleapis";
 
+type CoffeeSelection = {
+  type: string;
+  quantity: number;
+  ice: {
+    withIce: number;
+    withoutIce: number;
+  };
+}
+
 type SheetForm = {
-  uuid: string,
-  name: string,
-  phone: string,
-  notes: string,
-  location: string,
-  size: string,
-  sugar: string,
-  ice: string,
-  bukti_pembayaran: string,
-  invoice: string,
+  uuid: string;
+  date: string;
+  name: string;
+  phone: string;
+  notes: string;
+  coffeeSelections: CoffeeSelection[];
+  totalPrice: number;
+  location: string;
+  bukti_pembayaran: string;
+  status: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -34,9 +43,20 @@ export async function POST(req: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
     const invoiceUrl = `${baseUrl}/invoice/${body.uuid}`
 
+    // Format coffee selections into a readable string
+    const coffeeSelectionsStr = body.coffeeSelections
+      .filter(selection => selection.quantity > 0)
+      .map(selection => {
+        const withIce = selection.ice.withIce > 0 ? `${selection.ice.withIce} with ice` : '';
+        const withoutIce = selection.ice.withoutIce > 0 ? `${selection.ice.withoutIce} without ice` : '';
+        const iceDetails = [withIce, withoutIce].filter(Boolean).join(', ');
+        return `${selection.type} (${iceDetails})`;
+      })
+      .join('; ');
+
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: "A1:L1",
+      range: "A1:K1",
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values: [[
@@ -45,15 +65,14 @@ export async function POST(req: NextRequest) {
           body.name,
           body.phone,
           body.notes,
+          coffeeSelectionsStr,
+          body.totalPrice,
           body.location,
-          body.size,
-          body.sugar,
-          body.ice,
           invoiceUrl,
           body.bukti_pembayaran,
-          "Pending"
+          body.status,
         ]],
-      },  
+      },
     });
 
     return NextResponse.json({data: response.data}, {status: 200});

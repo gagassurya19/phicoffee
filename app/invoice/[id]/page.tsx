@@ -8,12 +8,11 @@ interface OrderData {
   phone: string
   notes: string
   location: string
-  size: string
-  sugar: string
-  ice: string
+  coffeeSelections: string
   invoice: string
   payment_proof_url: string
   status: string
+  created_at: string
 }
 
 async function getOrder(id: string): Promise<OrderData | null> {
@@ -34,7 +33,7 @@ async function getOrder(id: string): Promise<OrderData | null> {
     // Get all orders
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'A2:L', // Get all rows from A2 to L (excluding header)
+      range: 'A2:K', // Get all rows from A2 to K (excluding header)
     })
 
     const rows = response.data.values
@@ -56,12 +55,11 @@ async function getOrder(id: string): Promise<OrderData | null> {
       phone: order[3],        // phone
       notes: order[4],        // notes
       location: order[5],     // location
-      size: order[6],         // size
-      sugar: order[7],        // sugar
-      ice: order[8],          // ice
-      invoice: order[0],      // invoice
-      payment_proof_url: order[10], // bukti_pembayaran
-      status: order[11],      // status
+      coffeeSelections: order[6], // coffee selections
+      invoice: order[7],      // invoice url
+      payment_proof_url: order[8], // bukti_pembayaran
+      status: order[9],       // status
+      created_at: order[10],  // created at timestamp
     }
 
     return orderData
@@ -108,13 +106,12 @@ export default async function InvoicePage({
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Details</h2>
               <div className="space-y-2">
-                <p><span className="font-medium">Size:</span> {order.size}</p>
-                <p><span className="font-medium">Sugar:</span> {order.sugar}</p>
-                <p><span className="font-medium">Ice:</span> {order.ice}</p>
+                <p><span className="font-medium">Coffee Orders:</span> {order.coffeeSelections}</p>
                 {order.notes && (
                   <p><span className="font-medium">Notes:</span> {order.notes}</p>
                 )}
                 <p><span className="font-medium">Status:</span> {order.status}</p>
+                <p><span className="font-medium">Created At:</span> {order.created_at}</p>
               </div>
             </div>
           </div>

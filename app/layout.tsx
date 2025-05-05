@@ -1,15 +1,12 @@
-import type React from "react"
-import "@/app/globals.css"
+import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
+import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata = {
-  title: "Phi Coffee - Order Online",
-  description: "Order your favorite coffee from Phi Coffee - Serving Telkom University students",
-    generator: 'v0.dev'
+export const metadata: Metadata = {
+  title: "Phi Coffee Order",
+  description: "Order your favorite coffee from Phi Coffee",
 }
 
 export default function RootLayout({
@@ -19,12 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light">
-          {children}
-          <Toaster />
-        </ThemeProvider>
-      </body>
+      <body className={inter.className}>{children}</body>
     </html>
   )
 }
