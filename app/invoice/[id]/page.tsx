@@ -33,7 +33,7 @@ async function getOrder(id: string): Promise<OrderData | null> {
     // Get all orders
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'A2:K', // Get all rows from A2 to K (excluding header)
+      range: 'A2:L', // Get all rows from A2 to K (excluding header)
     })
 
     const rows = response.data.values
@@ -57,9 +57,9 @@ async function getOrder(id: string): Promise<OrderData | null> {
       coffeeSelections: order[5], // coffee selections
       totalPrice: order[6],   // total price
       location: order[7],     // location
-      invoice: order[8],      // invoice url
-      payment_proof_url: order[9], // bukti_pembayaran
-      status: order[10],       // status
+      invoice: order[9],      // invoice url
+      payment_proof_url: order[10], // bukti_pembayaran
+      status: order[11],       // status
     }
 
     return orderData
