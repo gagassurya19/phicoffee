@@ -94,6 +94,28 @@ async function sendTelegramNotification(data: OrderData) {
       }
     }
 
+    const getDeliverySchedule = (orderDate: string) => {
+      const date = new Date(orderDate)
+      const day = date.getDay() // 0 = Sunday, 1 = Monday, etc.
+      const deliveryDate = new Date(date)
+      
+      // Calculate delivery date based on order day
+      if (day === 1 || day === 2) { // Monday-Tuesday
+        deliveryDate.setDate(date.getDate() + (3 - day)) // Deliver on Wednesday
+      } else if (day === 3 || day === 4) { // Wednesday-Thursday
+        deliveryDate.setDate(date.getDate() + (5 - day)) // Deliver on Friday
+      } else if (day === 5 || day === 6) { // Friday-Saturday
+        deliveryDate.setDate(date.getDate() + (7 - day)) // Deliver on Sunday
+      }
+      
+      return deliveryDate.toLocaleDateString('id-ID', { 
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      })
+    }
+
     const message = `
 🆕 *NEW COFFEE ORDER* 🆕
 
@@ -109,7 +131,7 @@ ${formatCoffeeSelections(data.coffeeSelections)}
 ${data.notes ? `📝 *Notes*: ${data.notes}` : ""}
 
 📄 *Invoice*: ${baseUrl}/invoice/${data.uuid}
-⏰ *Time*: ${new Date().toLocaleString()}
+⏰ *Time*: ${new Date().toISOString()}
     `.trim()
 
     // Send the message

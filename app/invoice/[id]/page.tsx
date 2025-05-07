@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { google } from 'googleapis'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, getDeliverySchedule, getWeeklySchedule, type ScheduleItem } from '@/lib/utils'
 
 interface OrderData {
   id: string
@@ -70,6 +70,16 @@ async function getOrder(id: string): Promise<OrderData | null> {
   }
 }
 
+function parseDate(dateStr: string): string {
+  // Parse date in format "6/5/2025, 23.38.42"
+  const [datePart, timePart] = dateStr.split(', ');
+  const [day, month, year] = datePart.split('/');
+  const [hours, minutes, seconds] = timePart.split('.');
+  
+  // Create date in YYYY-MM-DDTHH:mm:ss format
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}`;
+}
+
 export default async function InvoicePage({
   params,
 }: {
@@ -113,6 +123,29 @@ export default async function InvoicePage({
                   <p><span className="font-medium">Notes:</span> {order.notes}</p>
                 )}
                 <p><span className="font-medium">Status:</span> {order.status}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-green-50 p-4 rounded-lg mb-8">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Delivery Information</h2>
+            <div className="space-y-4">
+              <p className="text-green-700 font-medium">FREE ONGKIR AREA TELKOM UNIVERSITY</p>
+              
+              <div className="space-y-2">
+                <p className="font-medium">Estimasi Pengiriman:</p>
+                <p>Pesanan akan diantar pada {getDeliverySchedule(parseDate(order.date))} Pukul 11:00 WIB</p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="font-medium">Jadwal PO & Delivery Minggu Ini:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  {getWeeklySchedule().map((schedule: ScheduleItem, index: number) => (
+                    <li key={index}>
+                      Order {schedule.orderDays} akan diantar pada hari {schedule.deliveryDay} Pukul 11:00 WIB
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>

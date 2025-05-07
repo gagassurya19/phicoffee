@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { PaymentModal } from "./payment-modal"
 import dynamic from 'next/dynamic'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, getDeliverySchedule, getWeeklySchedule, type ScheduleItem } from '@/lib/utils'
 import 'leaflet/dist/leaflet.css'
 
 const MapWithNoSSR = dynamic(() => import('@/components/map').then(mod => mod.default), {
@@ -492,6 +492,28 @@ export default function CoffeeOrderForm() {
               <div className="flex justify-between items-center mt-4 pt-4 border-t">
                 <span className="font-semibold">Total Price:</span>
                 <span className="font-bold">Rp {formatPrice(calculateTotalPrice())}</span>
+              </div>
+
+              <div className="mt-4 pt-4 border-t">
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-green-700 mb-2">FREE ONGKIR AREA TELKOM UNIVERSITY</h3>
+                  
+                  <div className="space-y-2">
+                    <p className="font-medium">Estimasi Pengiriman:</p>
+                    <p>Pesanan akan diantar pada {getDeliverySchedule(new Date().toISOString())} Pukul 11:00 WIB</p>
+                  </div>
+
+                  <div className="space-y-2 mt-4">
+                    <p className="font-medium">Jadwal PO & Delivery Minggu Ini:</p>
+                    <ul className="list-disc pl-5 space-y-1 text-sm">
+                      {getWeeklySchedule().map((schedule: ScheduleItem, index: number) => (
+                        <li key={index}>
+                          Order {schedule.orderDays} akan diantar pada hari {schedule.deliveryDay} Pukul 11:00 WIB
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
           )}
