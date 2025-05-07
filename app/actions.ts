@@ -66,30 +66,42 @@ async function saveToSpreadsheet(data: OrderData) {
 async function sendTelegramNotification(data: OrderData) {
   try {
     const botToken = process.env.TELEGRAM_BOT_TOKEN
-    const chatId = process.env.TELEGRAM_CHAT_ID
+    const chatId = "-1002585854596" // Updated supergroup chat ID
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
 
-    if (!botToken || !chatId) {
+    if (!botToken) {
       throw new Error("Telegram configuration missing")
     }
 
     // Format the message
     const formatCoffeeSelections = (selections: any) => {
       try {
-        const parsed = typeof selections === 'string' ? JSON.parse(selections) : selections
-        if (!Array.isArray(parsed)) return String(selections)
+        let parsed = selections
+        if (typeof selections === 'string') {
+          try {
+            parsed = JSON.parse(selections)
+          } catch (e) {
+            console.error('Error parsing coffee selections JSON:', e)
+            return String(selections)
+          }
+        }
+        
+        if (!Array.isArray(parsed)) {
+          console.error('Coffee selections is not an array:', parsed)
+          return String(selections)
+        }
         
         return parsed
           .filter(selection => selection.quantity > 0)
           .map(selection => {
-            const withIce = selection.ice.withIce > 0 ? `with ice: ${selection.ice.withIce}x` : '';
-            const withoutIce = selection.ice.withoutIce > 0 ? `no ice: ${selection.ice.withoutIce}x` : '';
+            const withIce = selection.ice?.withIce > 0 ? `with ice: ${selection.ice.withIce}x` : '';
+            const withoutIce = selection.ice?.withoutIce > 0 ? `no ice: ${selection.ice.withoutIce}x` : '';
             const iceDetails = [withIce, withoutIce].filter(Boolean).join(' | ');
             return `• ${selection.type}\n  ${iceDetails}`;
           })
           .join('\n\n');
       } catch (error) {
-        console.error('Error parsing coffee selections:', error)
+        console.error('Error formatting coffee selections:', error)
         return String(selections)
       }
     }
@@ -117,10 +129,10 @@ async function sendTelegramNotification(data: OrderData) {
     }
 
     const message = `
-🆕 *NEW COFFEE ORDER* 🆕
+🚀 *NEW COFFEE ORDER* 🚀
 
 👤 *Customer*: ${data.name}
-☎️ *Phone*: 0${data.phone}
+☎️ *Phone*: ${data.phone}
 📍 *Location*: ${data.location}
 ${data.location_coordinates ? `🗺 *Map*: ${data.location_coordinates}` : ""}
 
@@ -130,8 +142,11 @@ ${formatCoffeeSelections(data.coffeeSelections)}
 💰 *Total Price*: Rp ${formatPrice(data.totalPrice)}
 ${data.notes ? `📝 *Notes*: ${data.notes}` : ""}
 
+📅 *Delivery Schedule*:
+Antar pesanan pada ${getDeliverySchedule(data.date)} Pukul 11:00 WIB
+
 📄 *Invoice*: ${baseUrl}/invoice/${data.uuid}
-⏰ *Time*: ${new Date().toISOString()}
+⏰ *Order Time*: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}
     `.trim()
 
     // Send the message
@@ -149,6 +164,7 @@ ${data.notes ? `📝 *Notes*: ${data.notes}` : ""}
 
     if (!response.ok) {
       const errorData = await response.json()
+      console.error('Telegram API error response:', errorData)
       throw new Error(`Telegram API error: ${JSON.stringify(errorData)}`)
     }
 
