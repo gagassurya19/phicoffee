@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { google } from 'googleapis'
 import { formatPrice, getDeliverySchedule, getWeeklySchedule, type ScheduleItem } from '@/lib/utils'
+import React from 'react'
 
 interface OrderData {
   id: string
@@ -9,11 +10,17 @@ interface OrderData {
   phone: string
   notes: string
   location: string
-  coffeeSelections: string
+  location_coordinates: string
+  PC0: number  // Phista Coffee (no ice)
+  PC1: number  // Phista Coffee (with ice)
+  PCM0: number // Phicoffee Caramel Macchiato (no ice)
+  PCM1: number // Phicoffee Caramel Macchiato (with ice)
+  PBS0: number // Phicoffee Brown Sugar (no ice)
+  PBS1: number // Phicoffee Brown Sugar (with ice)
+  totalPrice: number
   invoice: string
   payment_proof_url: string
   status: string
-  totalPrice: number
 }
 
 async function getOrder(id: string): Promise<OrderData | null> {
@@ -34,7 +41,7 @@ async function getOrder(id: string): Promise<OrderData | null> {
     // Get all orders
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'A2:L', // Get all rows from A2 to K (excluding header)
+      range: 'NEW!A2:P', // Updated range to include all columns
     })
 
     const rows = response.data.values
@@ -55,12 +62,18 @@ async function getOrder(id: string): Promise<OrderData | null> {
       name: order[2],         // name
       phone: order[3],        // phone
       notes: order[4],        // notes
-      coffeeSelections: order[5], // coffee selections
-      totalPrice: order[6],   // total price
-      location: order[7],     // location
-      invoice: order[9],      // invoice url
-      payment_proof_url: order[10], // bukti_pembayaran
-      status: order[11],       // status
+      PC0: Number(order[5]),  // PC0
+      PC1: Number(order[6]),  // PC1
+      PCM0: Number(order[7]), // PCM0
+      PCM1: Number(order[8]), // PCM1
+      PBS0: Number(order[9]), // PBS0
+      PBS1: Number(order[10]), // PBS1
+      totalPrice: Number(order[11]), // total price
+      location: order[12],    // location
+      location_coordinates: order[13], // location coordinates
+      invoice: order[14],     // invoice url
+      payment_proof_url: order[15], // bukti_pembayaran
+      status: order[16],      // status
     }
 
     return orderData
@@ -78,6 +91,31 @@ function parseDate(dateStr: string): string {
   
   // Create date in YYYY-MM-DDTHH:mm:ss format
   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}`;
+}
+
+function formatCoffeeSelections(order: OrderData): React.ReactElement {
+  const selections: React.ReactElement[] = [];
+  
+  if (order.PC0 > 0) selections.push(
+    <li key="PC0">Phista Coffee ({order.PC0} without ice)</li>
+  );
+  if (order.PC1 > 0) selections.push(
+    <li key="PC1">Phista Coffee ({order.PC1} with ice)</li>
+  );
+  if (order.PCM0 > 0) selections.push(
+    <li key="PCM0">Phicoffee Caramel Macchiato ({order.PCM0} without ice)</li>
+  );
+  if (order.PCM1 > 0) selections.push(
+    <li key="PCM1">Phicoffee Caramel Macchiato ({order.PCM1} with ice)</li>
+  );
+  if (order.PBS0 > 0) selections.push(
+    <li key="PBS0">Phicoffee Brown Sugar ({order.PBS0} without ice)</li>
+  );
+  if (order.PBS1 > 0) selections.push(
+    <li key="PBS1">Phicoffee Brown Sugar ({order.PBS1} with ice)</li>
+  );
+  
+  return <ul className="list-disc pl-5 space-y-1">{selections}</ul>;
 }
 
 export default async function InvoicePage({
@@ -117,7 +155,10 @@ export default async function InvoicePage({
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Details</h2>
               <div className="space-y-2">
-                <p><span className="font-medium">Coffee Orders:</span> {order.coffeeSelections}</p>
+                <div>
+                  <span className="font-medium">Coffee Orders:</span>
+                  {formatCoffeeSelections(order)}
+                </div>
                 <p><span className="font-medium">Total Price:</span> Rp {formatPrice(order.totalPrice)}</p>
                 {order.notes && (
                   <p><span className="font-medium">Notes:</span> {order.notes}</p>

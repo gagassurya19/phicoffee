@@ -44,35 +44,53 @@ export async function POST(req: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
     const invoiceUrl = `${baseUrl}/invoice/${body.uuid}`
 
-    // Format coffee selections into a readable string
-    const coffeeSelectionsStr = body.coffeeSelections
-      .filter(selection => selection.quantity > 0)
-      .map(selection => {
-        const withIce = selection.ice.withIce > 0 ? `${selection.ice.withIce} with ice` : '';
-        const withoutIce = selection.ice.withoutIce > 0 ? `${selection.ice.withoutIce} without ice` : '';
-        const iceDetails = [withIce, withoutIce].filter(Boolean).join(', ');
-        return `${selection.type} (${iceDetails})`;
-      })
-      .join('; ');
+    // Initialize coffee quantities
+    let PC0 = 0;  // Phista Coffee (no ice)
+    let PC1 = 0;  // Phista Coffee (with ice)
+    let PCM0 = 0; // Phicoffee Caramel Macchiato (no ice)
+    let PCM1 = 0; // Phicoffee Caramel Macchiato (with ice)
+    let PBS0 = 0; // Phicoffee Brown Sugar (no ice)
+    let PBS1 = 0; // Phicoffee Brown Sugar (with ice)
+
+    // Process coffee selections
+    body.coffeeSelections.forEach(selection => {
+      const coffeeType = selection.type.toLowerCase();
+      
+      if (coffeeType.includes('phista coffee')) {
+        PC0 += selection.ice.withoutIce;
+        PC1 += selection.ice.withIce;
+      } else if (coffeeType.includes('caramel macchiato')) {
+        PCM0 += selection.ice.withoutIce;
+        PCM1 += selection.ice.withIce;
+      } else if (coffeeType.includes('brown sugar')) {
+        PBS0 += selection.ice.withoutIce;
+        PBS1 += selection.ice.withIce;
+      }
+    });
 
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: "A1:K1",
+      range: "NEW!A1:P1",
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values: [[
-          body.uuid,
-          new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }),
-          body.name,
-          body.phone,
-          body.notes,
-          coffeeSelectionsStr,
-          body.totalPrice,
-          body.location,
-          body.location_coordinates,
-          invoiceUrl,
-          body.bukti_pembayaran,
-          body.status,
+          body.uuid,                                    // ORDER ID
+          new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }), // TANGGAL
+          body.name,                                    // NAMA
+          body.phone,                                   // NO TELFON
+          body.notes,                                   // NOTES
+          PC0,                                         // PC0
+          PC1,                                         // PC1
+          PCM0,                                        // PCM0
+          PCM1,                                        // PCM1
+          PBS0,                                        // PBS0
+          PBS1,                                        // PBS1
+          body.totalPrice,                             // TOTAL HARGA
+          body.location,                               // LOKASI
+          body.location_coordinates,                    // MAPS
+          invoiceUrl,                                  // INVOICE
+          body.bukti_pembayaran,                       // BUKTI PEMBAYARAN
+          body.status,                                 // STATUS
         ]],
       },
     });
