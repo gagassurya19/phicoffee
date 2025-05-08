@@ -175,3 +175,25 @@ Antar pesanan pada ${getDeliverySchedule(data.date)} Pukul 11:00 WIB
   }
 }
 
+export async function submitSpotOrder(orderData: any) {
+  try {
+    const response = await fetch('/api/spot-order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(orderData),
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to save order to spreadsheet")
+    }
+
+    const result = await response.json()
+    return result
+  } catch (error) {
+    console.error("Error saving to spreadsheet:", error)
+    throw new Error("Failed to save order to spreadsheet")
+  }
+}
+

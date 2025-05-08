@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from 'next/navigation'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -15,6 +16,7 @@ import { PaymentModal } from "./payment-modal"
 import dynamic from 'next/dynamic'
 import { formatPrice, getDeliverySchedule, getWeeklySchedule, type ScheduleItem } from '@/lib/utils'
 import 'leaflet/dist/leaflet.css'
+import ImageModal from "./ImageModal"
 
 const MapWithNoSSR = dynamic(() => import('@/components/map').then(mod => mod.default), {
   ssr: false,
@@ -65,6 +67,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>
 
 export default function CoffeeOrderForm() {
+  const searchParams = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [coffeeSelections, setCoffeeSelections] = useState<CoffeeSelection[]>(
     coffeeOptions.map(coffee => ({ 
@@ -336,6 +339,11 @@ export default function CoffeeOrderForm() {
                       height={60}
                       className="rounded-full"
                     />
+                    {/* <ImageModal
+                      src={coffee.image}
+                      alt={coffee.label}
+                      className="w-[60px] h-[60px] rounded-full object-cover"
+                    /> */}
                     <div>
                       <h3 className="font-medium">{coffee.label}</h3>
                       <p className="text-sm text-gray-500">Rp {formatPrice(coffee.price)}</p>

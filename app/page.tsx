@@ -1,5 +1,6 @@
 import { Coffee } from "lucide-react"
 import OrderTabs from "@/components/order-tabs"
+import { Suspense } from "react"
 
 export default function Home() {
   return (
@@ -17,7 +18,9 @@ export default function Home() {
             <p className="text-center text-white/80 text-sm mt-1">Fresh brews for Telkom University students</p>
           </div>
 
-          <OrderTabs />
+          <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
+            <OrderTabs />
+          </Suspense>
         </div>
 
         <footer className="mt-8 text-[#667538] text-center py-2 text-sm font-semibold">
