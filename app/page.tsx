@@ -19,6 +19,10 @@ export default function Home() {
 
           <OrderTabs />
         </div>
+
+        <footer className="mt-8 text-[#667538] text-center py-2 text-sm font-semibold">
+          <p>Developed by IT PhiCoffee</p>
+        </footer>
       </div>
     </main>
   )
