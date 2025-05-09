@@ -287,7 +287,7 @@ export default async function InvoicePage({
                     </svg>
                     <span className="font-medium text-gray-900">Estimasi Pengiriman</span>
                   </div>
-                  <p className="text-gray-600">Pesanan akan diantar pada {getDeliverySchedule(parseDate(order.date))} Pukul 11:00 WIB</p>
+                  <p className="text-gray-600">Pesanan akan diantar pada {getDeliverySchedule(parseDate(order.date))} Pukul 15:00 WIB</p>
                 </div>
 
                 <div className="bg-white rounded-lg p-4">
@@ -301,7 +301,7 @@ export default async function InvoicePage({
                     {getWeeklySchedule().map((schedule: ScheduleItem, index: number) => (
                       <li key={index} className="flex items-center gap-2 text-gray-600">
                         <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                        Order {schedule.orderDays} akan diantar pada hari {schedule.deliveryDay} Pukul 11:00 WIB
+                        Order {schedule.orderDays} akan diantar pada hari {schedule.deliveryDay} Pukul 15:00 WIB
                       </li>
                     ))}
                   </ul>

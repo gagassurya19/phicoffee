@@ -508,7 +508,7 @@ export default function CoffeeOrderForm() {
                   
                   <div className="space-y-2">
                     <p className="font-medium">Estimasi Pengiriman:</p>
-                    <p>Pesanan akan diantar pada {getDeliverySchedule(new Date().toISOString())} Pukul 11:00 WIB</p>
+                    <p>Pesanan akan diantar pada {getDeliverySchedule(new Date().toISOString())} Pukul 15:00 WIB</p>
                   </div>
 
                   <div className="space-y-2 mt-4">
@@ -516,7 +516,7 @@ export default function CoffeeOrderForm() {
                     <ul className="list-disc pl-5 space-y-1 text-sm">
                       {getWeeklySchedule().map((schedule: ScheduleItem, index: number) => (
                         <li key={index}>
-                          Order {schedule.orderDays} akan diantar pada hari {schedule.deliveryDay} Pukul 11:00 WIB
+                          Order {schedule.orderDays} akan diantar pada hari {schedule.deliveryDay} Pukul 15:00 WIB
                         </li>
                       ))}
                     </ul>
