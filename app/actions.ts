@@ -143,7 +143,7 @@ ${formatCoffeeSelections(data.coffeeSelections)}
 ${data.notes ? `📝 *Notes*: ${data.notes}` : ""}
 
 📅 *Delivery Schedule*:
-Antar pesanan pada ${getDeliverySchedule(data.date)} Pukul 11:00 WIB
+Antar pesanan pada ${getDeliverySchedule(data.date)} Pukul 15:00 WIB
 
 📄 *Invoice*: ${baseUrl}/invoice/${data.uuid}
 ⏰ *Order Time*: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}
